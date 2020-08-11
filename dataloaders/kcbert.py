@@ -52,7 +52,7 @@ class KCBertDataset(Dataset):
         return len(self.labels)
 
 class KCBertTokenizerWrapper():
-    def __init__(self, tokenizer_name, max_length, labelEncoder):
+    def __init__(self, tokenizer_name, max_length, labelEncoder=None):
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
         self.labelEncoder = labelEncoder
         self.max_length = max_length

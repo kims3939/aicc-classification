@@ -16,9 +16,8 @@ def defineArgs():
     parser.add_argument('--label_idx', type=int, required=True)
     parser.add_argument('--text_idx', type=int, required=True)
     parser.add_argument('--valid_ratio', type=float, default=.3)
-    parser.add_argument('--log_dir', type=str, default='/logs')
-    parser.add_argument('--chk_dir', type=str, default='/checkpoints')
-
+    parser.add_argument('--prj_name', type=str, required=True)
+    
     parser = KCBertClassifier.add_model_specific_args(parser)
     
     return parser.parse_args()
@@ -54,20 +53,25 @@ def main(config):
                                     wrapper.tokenizerWrapper) 
 
     #checkpoint
-    checkpoint_callback = ModelCheckpoint(filepath=config.chk_dir,
+    checkpoint_callback = ModelCheckpoint(filepath=os.path.join(os.getcwd(),'checkpoints',config.prj_name,'{epoch}-{val_loss:.2f}'),
                                           monitor='val_loss',
                                           save_top_k=1,
                                           mode='min')
     
     #logger
-    logger = TensorBoardLogger(config.log_dir)
+    logger = TensorBoardLogger(save_dir='logs/', name=config.prj_name)
     
     #trainer
     trainer = None
     if torch.cuda.is_available():
-        trainer = Trainer(gpus=config.gpus, checkpoint_callback=checkpoint_callback, logger=logger)  
+        trainer = Trainer(gpus=config.gpus, 
+                          max_epochs=config.max_epoch,
+                          logger=logger,
+                          checkpoint_callback=checkpoint_callback)  
     else:
-        trainer = Trainer(checkpoint_callback=checkpoint_callback, logger=logger)
+        trainer = Trainer(max_epochs=config.max_epoch,
+                          logger=logger,
+                          checkpoint_callback=checkpoint_callback)
 
     trainer.fit(model, train_loader, valid_loader)
    
