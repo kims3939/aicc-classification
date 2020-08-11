@@ -1,0 +1,8 @@
+#vs code config
+.vscode/
+
+#pyhton cache
+__pycache__/
+
+#logs
+lightning_logs/
