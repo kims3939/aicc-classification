@@ -8,8 +8,11 @@ from transformers import get_linear_schedule_with_warmup
 from argparse import ArgumentParser
 
 class KCBertClassifier(LightningModule):
-    def __init__(self, bert_name, n_classes, max_epoch, batch_size, lr, eps, warmup_ratio, bert_freeze):
+    def __init__(self):
         super().__init__()
+
+    def build(self, bert_name, n_classes, max_epoch, batch_size, lr, eps, warmup_ratio, bert_freeze):
+        
         #set config
         self.bert_name  = bert_name
         self.n_classes  = n_classes
@@ -28,7 +31,6 @@ class KCBertClassifier(LightningModule):
         #freeze
         if self.bert_freeze:
             self.freeze()
-
 
     @staticmethod
     def add_model_specific_args(parent_parser):

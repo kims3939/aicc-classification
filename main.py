@@ -24,14 +24,15 @@ def defineArgs():
     
 def main(config):
     #model
-    model = KCBertClassifier(config.bert_name, 
-                             config.n_classes, 
-                             config.max_epoch, 
-                             config.batch_size, 
-                             config.lr, 
-                             config.eps, 
-                             config.warmup_ratio,
-                             config.bert_freeze)
+    model = KCBertClassifier()
+    model.build(config.bert_name, 
+                config.n_classes, 
+                config.max_epoch, 
+                config.batch_size, 
+                config.lr, 
+                config.eps, 
+                config.warmup_ratio,
+                config.bert_freeze)
     
     #dataloader
     trainset, validset = KCBertDataloader.loadData(config.train_fn, 
@@ -74,7 +75,7 @@ def main(config):
                           checkpoint_callback=checkpoint_callback)
 
     trainer.fit(model, train_loader, valid_loader)
-   
+    
 if __name__ == '__main__':
     config = defineArgs()
     main(config)

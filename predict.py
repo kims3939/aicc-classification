@@ -1,30 +1,46 @@
 import os
+import sys
+import torch
 from argparse import ArgumentParser
 from models.kcbert import KCBertClassifier
 from dataloaders.kcbert import KCBertTokenizerWrapper
 
 def defineArgs():
     parser = ArgumentParser()
-    parser.add_argument('--model_path', type=str, required=True)
-    parser.add_argument('--tokenizer_name', type=str, required=True)
-    parser.add_argument('--max_length', type=int, default=128)
-    parser.add_argument('--text', type=str, required=True)
+    parser.add_argument('--model_fn', type=str, default='best.ckpt')
+    parser.add_argument('--pretrained_name', type=str, default='beomi/kcbert-base')
     return parser.parse_args()
 
-def predict(config):
-    tokenizer = KCBertTokenizerWrapper(config.tokenizer_name, config.max_length).tokenizer
-    encoded_input = tokenizer(config.text, 
+def init(config):
+    tokenizer = KCBertTokenizerWrapper(config.pretrained_name, 0, None).tokenizer
+    model = KCBertClassifier.load_from_checkpoint(   
+        checkpoint_path=os.path.join(os.getcwd(),'checkpoints/kcbert',config.model_fn),
+        bert_name=config.pretrained_name, 
+        n_classes=2, 
+        max_epoch=0, 
+        batch_size=0, 
+        lr=0, 
+        eps=0, 
+        warmup_ratio=0, 
+        bert_freeze=False)
+
+    return tokenizer, model
+    
+def predict(text, tokenizer, model):
+    encoded_input = tokenizer(text, 
                               padding=True,
                               truncation=True,
-                              max_length=config.max_length,
                               return_attention_mask=True,
                               return_tensors='pt')
     
     input_ids, attention_mask = encoded_input['input_ids'], encoded_input['attention_mask']
-    model = KCBertClassifier.load_from_checkpoint(config.checkpoint_path)
     output = model(input_ids, attention_mask)
     print(output)
 
 if __name__ == '__main__':
     config = defineArgs()
-    predict(config)
+    tokenizer, model = init(config)
+    
+    for line in sys.stdin:
+        predict(line, tokenizer, model)
+    
