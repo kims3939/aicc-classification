@@ -8,8 +8,9 @@ from transformers import get_linear_schedule_with_warmup
 from argparse import ArgumentParser
 
 class KCBertClassifier(LightningModule):
-    def __init__(self, bert_name, n_classes, max_epoch, batch_size, lr, eps, warmup_ratio):
+    def __init__(self, bert_name, n_classes, max_epoch, batch_size, lr, eps, warmup_ratio, bert_freeze):
         super().__init__()
+        #set config
         self.bert_name  = bert_name
         self.n_classes  = n_classes
         self.max_epoch  = max_epoch
@@ -17,10 +18,18 @@ class KCBertClassifier(LightningModule):
         self.lr  = lr
         self.eps = eps
         self.warmup_ratio = warmup_ratio
+        self.bert_freeze = bert_freeze
+
+        #model build
         self.bert = AutoModel.from_pretrained(self.bert_name)
         self.genrator = nn.Linear(self.bert.config.hidden_size, self.n_classes)
         self.softmax = nn.Softmax(dim=-1)
-    
+
+        #freeze
+        if self.bert_freeze:
+            self.freeze()
+
+
     @staticmethod
     def add_model_specific_args(parent_parser):
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
@@ -32,6 +41,7 @@ class KCBertClassifier(LightningModule):
         parser.add_argument('--eps', type=float, default=1e-8)
         parser.add_argument('--max_length', type=int, default=128)
         parser.add_argument('--warmup_ratio', type=float, default=.1)
+        parser.add_argument('--bert_freeze', action='store_true')
         return parser
 
     def forward(self, input_ids, attention_mask):
@@ -41,6 +51,10 @@ class KCBertClassifier(LightningModule):
 
         return x
     
+    def freeze(self):
+        for param in self.bert.parameters():
+            param.requires_grad = False
+        
     def training_step(self, batch, batch_index):
         input_ids, attention_mask, target = batch
         
