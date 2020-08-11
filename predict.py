@@ -13,16 +13,17 @@ def defineArgs():
 
 def init(config):
     tokenizer = KCBertTokenizerWrapper(config.pretrained_name, 0, None).tokenizer
-    model = KCBertClassifier.load_from_checkpoint(   
-        checkpoint_path=os.path.join(os.getcwd(),'checkpoints/kcbert',config.model_fn),
-        bert_name=config.pretrained_name, 
-        n_classes=2, 
-        max_epoch=0, 
-        batch_size=0, 
-        lr=0, 
-        eps=0, 
-        warmup_ratio=0, 
-        bert_freeze=False)
+    model = KCBertClassifier.load_from_checkpoint(
+        'checkpoints/best.ckpt',
+        bert_name='beomi/kcbert-base',
+        n_classes=2,
+        max_epoch=1,
+        batch_size=1,
+        lr=0.0,
+        eps=0.0,
+        warmup_ratio=0.0,
+        bert_freeze=False
+    )
 
     return tokenizer, model
     
