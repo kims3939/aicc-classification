@@ -55,10 +55,12 @@ def predict(text, label_vocab, tokenizer, model):
             'weight':data[1]
         })
     
-    print(result)
+    return result
 
 if __name__ == '__main__':
     config = define_args()
     model, tokenizer, label_vocab = init(config)
     
-    predict(sys.stdin.readline(), label_vocab, tokenizer, model)
+    for line in sys.stdin:
+        result = predict(line, label_vocab, tokenizer, model)
+        print(result)

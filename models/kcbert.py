@@ -14,10 +14,10 @@ class KCBertClassifier(LightningModule):
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
         
         #model hyper-params
-        parser.add_argument('--encoder_model'  , type=str, required=True)
+        parser.add_argument('--encoder_model'  , type=str, default='beomi/kcbert-base')
         parser.add_argument('--n_classes'      , type=int, required=True)
         parser.add_argument('--freeze_encoder' , action='store_true')
-        parser.add_argument('--max_length'     , type=int,   default=128)
+        parser.add_argument('--max_length'     , type=int, default=128)
     
         #optimizer hyper-params
         parser.add_argument('--lr'           , type=float, default=5e-5)
