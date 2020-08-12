@@ -7,8 +7,9 @@ from sklearn.model_selection import train_test_split
 
 class KCBertDataloader(DataLoader):
     def __init__(self, dataset, batch_size, collate_fn):
-        seq_sampler = SequentialSampler(dataset)
+        seq_sampler   = SequentialSampler(dataset)
         batch_sampler = BatchSampler(seq_sampler, batch_size, False)
+        
         super().__init__(
             dataset=dataset,
             batch_sampler=batch_sampler,
@@ -16,12 +17,12 @@ class KCBertDataloader(DataLoader):
         )
     
     @staticmethod
-    def loadData(path, sep, text_idx, label_idx, valid_ratio=0.3):
-        dataset = pd.read_csv(os.path.join('dataset',path), sep=sep)
-        texts = dataset.iloc[:, text_idx].values.tolist()
-        labels = dataset.iloc[:, label_idx].values.tolist()
+    def loadData(hparams):
+        dataset = pd.read_csv(os.path.join(hparams.train_dir, hparams.train_fn), sep=hparams.sep)
+        texts  = dataset.iloc[:, hparams.text_idx].values.tolist()
+        labels = dataset.iloc[:, hparams.label_idx].values.tolist()
 
-        train_x, valid_x, train_y, valid_y = train_test_split(texts, labels, test_size=valid_ratio)
+        train_x, valid_x, train_y, valid_y = train_test_split(texts, labels, test_size=hparams.valid_ratio)
         trainset = KCBertDataset(train_x, train_y)
         validset = KCBertDataset(valid_x, valid_y)
         
@@ -52,10 +53,10 @@ class KCBertDataset(Dataset):
         return len(self.labels)
 
 class KCBertTokenizerWrapper():
-    def __init__(self, tokenizer_name, max_length, labelEncoder):
-        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
+    def __init__(self, hparams, labelEncoder):
+        self.tokenizer    = AutoTokenizer.from_pretrained(hparams.encoder_model)
         self.labelEncoder = labelEncoder
-        self.max_length = max_length
+        self.max_length   = hparams.max_length
 
     def tokenizerWrapper(self, samples):
         texts  = [sample['text']  for sample in samples]
@@ -69,6 +70,7 @@ class KCBertTokenizerWrapper():
                                        return_tensors='pt')
         
         encoded_label = self.labelEncoder.transform(labels)
+        
         return (encoded_input['input_ids'], 
                 encoded_input['attention_mask'],
                 torch.tensor(encoded_label, dtype=torch.long))

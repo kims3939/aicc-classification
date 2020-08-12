@@ -8,53 +8,49 @@ from transformers import get_linear_schedule_with_warmup
 from argparse import ArgumentParser
 
 class KCBertClassifier(LightningModule):
-    def __init__(self, bert_name, n_classes, max_epoch, batch_size, lr, eps, warmup_ratio, bert_freeze):
-        super().__init__()
-        #set config
-        self.bert_name  = bert_name
-        self.n_classes  = n_classes
-        self.max_epoch  = max_epoch
-        self.batch_size = batch_size
-        self.lr  = lr
-        self.eps = eps
-        self.warmup_ratio = warmup_ratio
-        self.bert_freeze = bert_freeze
-
-        #model build
-        self.bert = AutoModel.from_pretrained(self.bert_name)
-        self.genrator = nn.Linear(self.bert.config.hidden_size, self.n_classes)
-        self.softmax = nn.Softmax(dim=-1)
-
-        #freeze
-        if self.bert_freeze:
-            self.freeze()
-
-
+    
     @staticmethod
     def add_model_specific_args(parent_parser):
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
-        parser.add_argument('--bert_name', type=str, required=True)
-        parser.add_argument('--n_classes', type=int, required=True)
-        parser.add_argument('--max_epoch', type=int, default=5)
-        parser.add_argument('--batch_size', type=int, default=128)
-        parser.add_argument('--lr', type=float, default=5e-5)
-        parser.add_argument('--eps', type=float, default=1e-8)
-        parser.add_argument('--max_length', type=int, default=128)
-        parser.add_argument('--warmup_ratio', type=float, default=.1)
-        parser.add_argument('--bert_freeze', action='store_true')
+        
+        #model hyper-params
+        parser.add_argument('--encoder_model'  , type=str, required=True)
+        parser.add_argument('--n_classes'      , type=int, required=True)
+        parser.add_argument('--freeze_encoder' , action='store_true')
+        parser.add_argument('--max_length'     , type=int,   default=128)
+    
+        #optimizer hyper-params
+        parser.add_argument('--lr'           , type=float, default=5e-5)
+        parser.add_argument('--eps'          , type=float, default=1e-8)
+        parser.add_argument('--warmup_ratio' , type=float, default=.1)
+
         return parser
 
+    def __init__(self, hparams):
+        super().__init__()
+        self.hparams = hparams
+        self.label_vocab = None
+        self.__build_model()
+
+    def __build_model(self):
+        self.encoder   = AutoModel.from_pretrained(self.hparams.encoder_model)
+        self.generator = nn.Linear(self.encoder.config.hidden_size, self.hparams.n_classes)
+        self.softmax   = nn.Softmax(dim=-1)
+
+        if self.hparams.freeze_encoder:
+            self.freeze(self.encoder)
+        
+    def freeze(self, layer):
+        for param in layer.parameters():
+            param.requires_grad = False
+
     def forward(self, input_ids, attention_mask):
-        x = self.bert(input_ids, attention_mask)[0]
-        x = self.genrator(x[:,0,:])
+        x = self.encoder(input_ids, attention_mask)[0]
+        x = self.generator(x[:,0,:])
         x = self.softmax(x)
 
         return x
-    
-    def freeze(self):
-        for param in self.bert.parameters():
-            param.requires_grad = False
-        
+      
     def training_step(self, batch, batch_index):
         input_ids, attention_mask, target = batch
         
@@ -86,8 +82,8 @@ class KCBertClassifier(LightningModule):
         return {'log':logs, 'progress_bar':logs}
     
     def configure_optimizers(self):
-        total_step  = self.max_epoch * self.batch_size
-        warmup_step = self.warmup_ratio * total_step
+        total_step  = self.hparams.max_epochs * self.hparams.batch_size
+        warmup_step = self.hparams.warmup_ratio * total_step
 
         no_decay = ['bias', 'LayerNorm.weight']
         optimizer_grouped_parameters = [
@@ -100,6 +96,11 @@ class KCBertClassifier(LightningModule):
                 'weight_decay': 0.0
             }
         ]
-        optimizer = optim.AdamW(optimizer_grouped_parameters, lr=self.lr, eps=self.eps)
+
+        optimizer = optim.AdamW(optimizer_grouped_parameters, lr=self.hparams.lr, eps=self.hparams.eps)
         shceduelr = get_linear_schedule_with_warmup(optimizer, warmup_step, total_step)
         return [optimizer], [shceduelr]
+    
+    def on_save_checkpoint(self, checkpoint):
+        checkpoint['hparams'] = self.hparams
+        checkpoint['label_vocab'] = self.label_vocab

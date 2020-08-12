@@ -1,41 +1,40 @@
 import os
 import sys
 import torch
-import numpy as np
 from argparse import ArgumentParser
 from models.kcbert import KCBertClassifier
 from dataloaders.kcbert import KCBertTokenizerWrapper
 
-def defineArgs():
+def define_args():
     parser = ArgumentParser()
-    parser.add_argument('--pretrained', type=str, default='beomi/kcbert-base')
-    parser.add_argument('--chk_fn', type=str, default='best.ckpt')
-    parser.add_argument('--label_path', type=str, default='label_dict')
+    parser.add_argument('--encoder_model', type=str, default='beomi/kcbert-base')
+    parser.add_argument('--max_length'   , type=int, deafult=128)
+    parser.add_argument('--chk_dir'      , type=str, default='checkpoints/')
+    parser.add_argument('--chk_fn'       , type=str, default='best_model.ckpt')
+    
     return parser.parse_args()
 
-def init(config):
-    tokenizer = KCBertTokenizerWrapper(config.pretrained, 0, None).tokenizer
-    label_dict = np.load(os.path.join(os.getcwd(),config.label_path))
-    
-    model = KCBertClassifier.load_from_checkpoint(
-        checkpoint_path=os.path.join(os.getcwd(), 'checkpoints', config.chk_fn),
-        bert_name='beomi/kcbert-base',
-        n_classes=2,
-        max_epoch=1,
-        batch_size=1,
-        lr=0.0,
-        eps=0.0,
-        warmup_ratio=0.0,
-        bert_freeze=False
-    )
+def get_device():
+    if torch.cuda.is_available():
+        return torch.device('cuda:0')
+    else:
+        return torch.device('cpu')
 
-    return {
-        'label_dict':label_dict,
-        'tokenizer': tokenizer,
-        'model': model
-    }
+def init(config):
+    tokenizer   = KCBertTokenizerWrapper(config, None).tokenizer
+    checkpoint  = torch.load(os.path.join(config.chk_dir, config.chk_fn), map_location=get_device())
     
-def predict(text, label_dict, tokenizer, model):
+    state_dict  = checkpoint['state_dict']
+    hparams     = checkpoint['hparams']
+    label_vocab = checkpoint['label_vocab']
+
+    model = KCBertClassifier(hparams)
+    model.load_state_dict(state_dict)
+
+    return (model, tokenizer, label_vocab)
+    
+def predict(text, label_vocab, tokenizer, model):
+    model.eval()
     encoded_input = tokenizer(text, 
                               padding=True,
                               truncation=True,
@@ -44,15 +43,13 @@ def predict(text, label_dict, tokenizer, model):
 
     input_ids, attention_mask = encoded_input['input_ids'], encoded_input['attention_mask']
     output = model(input_ids, attention_mask)
-    print(output)
+    output = torch.argmax(output, dim=-1)
+
+    print('RESULT: ',label_vocab[output])
 
 if __name__ == '__main__':
-    config = defineArgs()
+    config = define_args()
+    model, tokenizer, label_vocab = init(config)
     
-    obj = init(config)
-    model = obj['model']
-    label_dict = obj['label_dict']
-    tokenizer  = obj['tokenizer']
-
     for line in sys.stdin:
-        predict(line, label_dict, tokenizer, model)
+        predict(line, label_vocab, tokenizer, model)
