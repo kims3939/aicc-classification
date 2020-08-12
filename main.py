@@ -1,5 +1,6 @@
 import torch
 import os
+import numpy as np
 from argparse import ArgumentParser
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
@@ -17,7 +18,7 @@ def defineArgs():
     parser.add_argument('--text_idx', type=int, required=True)
     parser.add_argument('--valid_ratio', type=float, default=.3)
     parser.add_argument('--prj_name', type=str, required=True)
-    
+    parser.add_argument('--label_path', type=str, default='label_dict')
     parser = KCBertClassifier.add_model_specific_args(parser)
     
     return parser.parse_args()
@@ -40,6 +41,7 @@ def main(config):
                                                    config.label_idx)
     
     label_encoder = LabelEncoder().fit(trainset.labels)
+    np.save(os.path.join(os.getcwd(),config.label_path), label_encoder.classes_)
     wrapper = KCBertTokenizerWrapper(config.bert_name, 
                                      config.max_length, 
                                      label_encoder)
