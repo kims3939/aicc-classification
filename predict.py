@@ -13,6 +13,7 @@ def defineArgs():
 
 def init(config):
     tokenizer = KCBertTokenizerWrapper(config.pretrained_name, 0, None).tokenizer
+
     model = KCBertClassifier.load_from_checkpoint(
         'checkpoints/best.ckpt',
         bert_name='beomi/kcbert-base',
@@ -39,9 +40,13 @@ def predict(text, tokenizer, model):
     print(output)
 
 if __name__ == '__main__':
-    config = defineArgs()
+    """ config = defineArgs()
     tokenizer, model = init(config)
     
     for line in sys.stdin:
-        predict(line, tokenizer, model)
-    
+        predict(line, tokenizer, model) """
+
+    checkpoints = torch.load('checkpoints/best.ckpt', map_location=torch.device('cpu'))
+    model = KCBertClassifier()
+    model.load_state_dict(checkpoints['state_dict'])
+    print(model)
