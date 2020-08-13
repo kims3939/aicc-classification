@@ -18,11 +18,15 @@ class KCBertDataloader(DataLoader):
     
     @staticmethod
     def loadData(hparams):
-        dataset = pd.read_csv(os.path.join(hparams.train_dir, hparams.train_fn), sep=hparams.sep)
-        texts  = dataset.iloc[:, hparams.text_idx].values.tolist()
-        labels = dataset.iloc[:, hparams.label_idx].values.tolist()
+        train_dataset = pd.read_csv(os.path.join(hparams.train_dir, hparams.train_fn), sep=hparams.sep)
+        valid_dataset = pd.read_csv(os.path.join(hparams.train_dir, hparams.valid_fn), sep=hparams.sep)
+        
+        train_x = train_dataset.iloc[:, hparams.text_idx].values.tolist()
+        train_y = train_dataset.iloc[:, hparams.label_idx].values.tolist()
 
-        train_x, valid_x, train_y, valid_y = train_test_split(texts, labels, test_size=hparams.valid_ratio)
+        valid_x = valid_dataset.iloc[:, hparams.text_idx].values.tolist()
+        valid_y = valid_dataset.iloc[:, hparams.label_idx].values.tolist()
+
         trainset = KCBertDataset(train_x, train_y)
         validset = KCBertDataset(valid_x, valid_y)
         

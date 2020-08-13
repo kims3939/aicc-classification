@@ -21,6 +21,7 @@ def define_args():
     #data params
     parser.add_argument('--train_dir'  , type=str,   default='dataset/')
     parser.add_argument('--train_fn'   , type=str,   required=True)
+    parser.add_argument('--valid_fn'   , type=str,   required=True)
     parser.add_argument('--label_idx'  , type=int,   required=True)
     parser.add_argument('--text_idx'   , type=int,   required=True)
     parser.add_argument('--sep'        , type=str,   default='\t')

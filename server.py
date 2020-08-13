@@ -49,6 +49,10 @@ def classification():
         'result':result
     }
 
+@app.route('/api/v1/get', methods=['GET'])
+def get():
+    return 'hello world'
+
 if __name__ == "__main__":
     print('Run server on port 5000 ...')
     app.run()
