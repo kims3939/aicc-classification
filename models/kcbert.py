@@ -3,7 +3,7 @@ from torch import nn
 from torch import optim
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.metrics.functional import accuracy
-from transformers import AutoModel
+from transformers import AutoModel, BertForSequenceClassification
 from transformers import get_linear_schedule_with_warmup
 from argparse import ArgumentParser
 

@@ -1,11 +1,7 @@
 import os
-import sys
-import torch
-from argparse import ArgumentParser
-from models.kcbert import KCBertClassifier
-from dataloaders.kcbert import KCBertTokenizerWrapper
-from flask import Flask, request, jsonify, g
-from predict import define_args, init, predict
+import json
+from flask import Flask, request
+from predict import SentimentClassification, AICCClassification
 
 class DotConfig(dict):
     def __getattr__(self, key):
@@ -26,32 +22,60 @@ class DotConfig(dict):
     def __repr__(self):
         return '<DotConfig '+dict.__repr__(self)+'>'
 
-def load():
-    config = DotConfig({'encoder_model':'beomi/kcbert-base',
-                        'chk_dir':'checkpoints',
-                        'chk_fn':'epoch=2-val_loss=0.38.ckpt',
-                        'max_length':128})
-    
-    return init(config)
+def load(model_name):
+    if model_name == 'kcbert_classifier':
+        config = DotConfig({'encoder_model':'beomi/kcbert-base',
+                            'chk_dir':'checkpoints',
+                            'chk_fn':'kcbert_80.pth',
+                            'topk':5,
+                            'max_length':128})
+        task = AICCClassification(config)
+        task.initialize()
+        return task
 
-model, tokenizer, label_vocab = load()
-app = Flask(__name__)
+task = load('kcbert_classifier')
+app = Flask(__name__, static_folder='./frontend/build', static_url_path='/')
+
+@app.route('/')
+def index():
+    return app.send_static_file('index.html')
+
+@app.route('/start', methods=['GET','POST'])
+def start():
+    if request.method == 'GET':
+        return {
+            'code':'SUCCESS',
+            'result':{
+                'available_models':[
+                    'kcbert_classifier'
+                ]
+            }
+        }
+
+    if request.method == 'POST':
+        post_param = request.get_data().decode('utf-8')
+        post_param = json.loads(post_param)
+        model_name = post_param['model_name']
+        name = load(model_name)
+
+        return {
+            'code':'SUCCESS',
+            'result':{
+                'task_name':name
+            }
+        }
 
 @app.route('/api/v1/classification', methods=['POST'])
 def classification():
-    post_param = request.get_json()
+    post_param = request.get_data().decode('utf-8')
+    post_param = json.loads(post_param)
     text = post_param['text']
-    
-    result = predict(text, label_vocab, tokenizer, model)
+    result = task.predict(text)
     
     return {
         'code':'SUCESS',
         'result':result
     }
-
-@app.route('/api/v1/get', methods=['GET'])
-def get():
-    return 'hello world'
 
 if __name__ == "__main__":
     print('Run server on port 5000 ...')
