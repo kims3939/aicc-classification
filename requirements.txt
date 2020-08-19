@@ -1,2 +1,5 @@
 transformers
 pytorch_lightning
+sklearn
+pandas
+flask
