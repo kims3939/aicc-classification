@@ -9,6 +9,7 @@ import Paper from '@material-ui/core/Paper';
 import LinearProgress  from '@material-ui/core/LinearProgress';
 import Box from '@material-ui/core/Box';
 import Typography from '@material-ui/core/Typography';
+import Tooltip from '@material-ui/core/Tooltip';
 import axios from 'axios';
 
 const useStyles = makeStyles({
@@ -40,7 +41,9 @@ const CustomLinearProgres = props => {
   return(
     <Box display='flex' alignItems='center' style={{marginBottom:10}}>
       <Box style={{marginRight:5}}>
-        <Typography varient='body2'>{props.label}</Typography>
+        <Tooltip title={props.label_name} placement="top" arrow>
+          <Typography varient='body2'>{props.label}</Typography>
+        </Tooltip>
       </Box>
       <Box width='100%'>
         <BorderLinearProgress variant='determinate' value={(parseFloat(props.percent)*100).toFixed(2)}/>
@@ -74,7 +77,7 @@ function App() {
   }
 
   const labelList = labels.map(label => (
-    <CustomLinearProgres key={label.category} label={label.category} percent={label.weight}/>
+    <CustomLinearProgres key={label.category} label={label.category} label_name={label.category_name} percent={label.weight}/>
   ));
 
   return (

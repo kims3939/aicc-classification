@@ -3,6 +3,7 @@ import sys
 import torch
 import torch.nn as nn
 import re
+import pandas as pd
 from argparse import ArgumentParser
 from models.kcbert import KCBertClassifier
 from dataloaders.kcbert import KCBertTokenizerWrapper
@@ -87,7 +88,12 @@ class AICCClassification():
         
         state_dict  = checkpoint['bert']
         label_vocab = checkpoint['classes']
-
+        
+        self.label_name_dict = {}
+        df = pd.read_csv(os.path.join(self.config.data_dir, self.config.label_fn), header=None, sep='\t')
+        for row in df.values:
+            self.label_name_dict[row[0]] = row[1]
+               
         model = BertForSequenceClassification.from_pretrained(
             self.config.encoder_model,
             num_labels=len(label_vocab)
@@ -97,7 +103,7 @@ class AICCClassification():
         self.model = model
         self.tokenizer = tokenizer
         self.label_vocab = label_vocab
-
+        
     def preprocess(self, text):
         lines = []
     
@@ -128,9 +134,11 @@ class AICCClassification():
             
             result = []
             for idx, data in enumerate(zip(indice[0].tolist(), propbs[0].tolist())):
+                category = self.label_vocab[data[0]]
                 result.append({
                     'order':idx,
-                    'category':self.label_vocab[data[0]],
+                    'category':category,
+                    'category_name':self.label_name_dict[category],
                     'weight':data[1]
                 })
             

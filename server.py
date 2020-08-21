@@ -25,8 +25,10 @@ class DotConfig(dict):
 def load(model_name):
     if model_name == 'kcbert_classifier':
         config = DotConfig({'encoder_model':'beomi/kcbert-base',
-                            'chk_dir':'../checkpoints',
+                            'chk_dir':'checkpoints',
                             'chk_fn':'kcbert_80.pth',
+                            'data_dir':'dataset',
+                            'label_fn':'label.tsv',
                             'topk':5,
                             'max_length':128})
         task = AICCClassification(config)
